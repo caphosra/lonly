@@ -30,7 +30,7 @@ fn parse_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement<'a>>
 
 fn parse_query_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement<'a>> {
     let (text, (_, _, query)) = tuple((tag("?"), multispace0, parse_predicate))(text)?;
-    Ok((text, Statement::Query(QueryStatement { query })))
+    Ok((text, QueryStatement::new(text, query)))
 }
 
 fn parse_def_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement<'a>> {
@@ -45,14 +45,7 @@ fn parse_def_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement<
     ))(text)?;
 
     let premises = premises.map_or(vec![], |(_, _, _, premises)| premises);
-
-    Ok((
-        text,
-        Statement::Def(DefStatement {
-            conclusion,
-            premises,
-        }),
-    ))
+    Ok((text, DefStatement::new(text, conclusion, premises)))
 }
 
 fn is_alphanumeric_or_underscore(s: char) -> bool {
@@ -70,34 +63,18 @@ fn parse_predicate<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
         separated_list1(tuple((multispace0, tag(","), multispace0)), parse_expr),
         tuple((multispace0, tag(")"))),
     )(text)?;
-    Ok((
-        text,
-        Expr::Predicate(PredicateExpr {
-            name: &ident,
-            arguments: l,
-        }),
-    ))
+    Ok((text, PredicateExpr::new(&ident, l)))
 }
 
 fn parse_var<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
     let (text, _) = tag("$")(text)?;
     let (text, ident) = take_while1(is_alphanumeric_or_underscore)(text)?;
-    Ok((
-        text,
-        Expr::Var(VarExpr {
-            name: ident.to_string(),
-        }),
-    ))
+    Ok((text, VarExpr::new(ident.to_string())))
 }
 
 fn parse_const<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
     let (text, ident) = take_while1(is_alphanumeric_or_underscore)(text)?;
-    Ok((
-        text,
-        Expr::Const(ConstExpr {
-            name: ident.to_string(),
-        }),
-    ))
+    Ok((text, ConstExpr::new(ident.to_string())))
 }
 
 #[cfg(test)]
@@ -114,8 +91,9 @@ mod test {
         assert_eq!(text.to_string(), "");
         assert_eq!(
             item,
-            Statement::Query(QueryStatement {
-                query: Expr::Predicate(PredicateExpr {
+            QueryStatement::new(
+                LocatedSpan::new(""),
+                Expr::Predicate(PredicateExpr {
                     name: "test_1dent",
                     arguments: vec![
                         Expr::Var(VarExpr {
@@ -132,7 +110,7 @@ mod test {
                         })
                     ]
                 })
-            })
+            )
         );
     }
 
