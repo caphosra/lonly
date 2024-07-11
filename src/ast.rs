@@ -75,19 +75,7 @@ impl VarExpr {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ConstExpr {
-    pub name: String,
-}
-
-impl ConstExpr {
-    pub fn new<'a>(name: String) -> Expr<'a> {
-        Expr::Const(ConstExpr { name })
-    }
-}
-
-#[derive(Debug, PartialEq)]
 pub enum Expr<'a> {
     Predicate(PredicateExpr<'a>),
     Var(VarExpr),
-    Const(ConstExpr),
 }

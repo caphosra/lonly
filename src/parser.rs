@@ -10,9 +10,7 @@ use nom::{
 };
 use nom_locate::LocatedSpan;
 
-use crate::ast::{
-    ConstExpr, DefStatement, Expr, PredicateExpr, QueryStatement, Statement, VarExpr,
-};
+use crate::ast::{DefStatement, Expr, PredicateExpr, QueryStatement, Statement, VarExpr};
 
 type ParseResult<'a, T> = IResult<LocatedSpan<&'a str>, T, VerboseError<LocatedSpan<&'a str>>>;
 
@@ -74,7 +72,7 @@ fn parse_var<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
 
 fn parse_const<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
     let (text, ident) = take_while1(is_alphanumeric_or_underscore)(text)?;
-    Ok((text, ConstExpr::new(ident.to_string())))
+    Ok((text, PredicateExpr::new(&ident, Vec::new())))
 }
 
 #[cfg(test)]
@@ -93,23 +91,19 @@ mod test {
             item,
             QueryStatement::new(
                 LocatedSpan::new(""),
-                Expr::Predicate(PredicateExpr {
-                    name: "test_1dent",
-                    arguments: vec![
-                        Expr::Var(VarExpr {
-                            name: "x".to_string()
-                        }),
-                        Expr::Const(ConstExpr {
-                            name: "z".to_string()
-                        }),
-                        Expr::Predicate(PredicateExpr {
-                            name: "s",
-                            arguments: vec![Expr::Var(VarExpr {
+                PredicateExpr::new(
+                    "test_1dent",
+                    vec![
+                        VarExpr::new("x".to_string()),
+                        PredicateExpr::new("z", Vec::new()),
+                        PredicateExpr::new(
+                            "s",
+                            vec![Expr::Var(VarExpr {
                                 name: "y".to_string()
                             })]
-                        })
+                        )
                     ]
-                })
+                )
             )
         );
     }
@@ -122,20 +116,13 @@ mod test {
         assert_eq!(text.to_string(), "remains");
         assert_eq!(
             item,
-            Expr::Predicate(PredicateExpr {
-                name: "test_1dent",
-                arguments: vec![
-                    Expr::Predicate(PredicateExpr {
-                        name: "s",
-                        arguments: vec![Expr::Var(VarExpr {
-                            name: "x".to_string()
-                        })]
-                    }),
-                    Expr::Var(VarExpr {
-                        name: "x".to_string()
-                    })
+            PredicateExpr::new(
+                "test_1dent",
+                vec![
+                    PredicateExpr::new("s", vec![VarExpr::new("x".to_string())]),
+                    VarExpr::new("x".to_string())
                 ]
-            })
+            )
         );
     }
 }
