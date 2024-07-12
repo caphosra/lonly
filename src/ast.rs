@@ -3,8 +3,8 @@ use nom_locate::LocatedSpan;
 #[derive(Debug)]
 pub struct DefStatement<'a> {
     location: LocatedSpan<&'a str>,
-    pub conclusion: Expr<'a>,
-    pub premises: Vec<Expr<'a>>,
+    pub conclusion: PredicateObj<'a>,
+    pub premises: Vec<PredicateObj<'a>>,
 }
 
 impl<'a> PartialEq for DefStatement<'a> {
@@ -16,8 +16,8 @@ impl<'a> PartialEq for DefStatement<'a> {
 impl<'a> DefStatement<'a> {
     pub fn new(
         location: LocatedSpan<&'a str>,
-        conclusion: Expr<'a>,
-        premises: Vec<Expr<'a>>,
+        conclusion: PredicateObj<'a>,
+        premises: Vec<PredicateObj<'a>>,
     ) -> Statement<'a> {
         Statement::Def(DefStatement {
             location,
@@ -30,7 +30,7 @@ impl<'a> DefStatement<'a> {
 #[derive(Debug)]
 pub struct QueryStatement<'a> {
     location: LocatedSpan<&'a str>,
-    pub query: Expr<'a>,
+    pub query: PredicateObj<'a>,
 }
 
 impl<'a> PartialEq for QueryStatement<'a> {
@@ -40,7 +40,7 @@ impl<'a> PartialEq for QueryStatement<'a> {
 }
 
 impl<'a> QueryStatement<'a> {
-    pub fn new(location: LocatedSpan<&'a str>, query: Expr<'a>) -> Statement<'a> {
+    pub fn new(location: LocatedSpan<&'a str>, query: PredicateObj<'a>) -> Statement<'a> {
         Statement::Query(QueryStatement { location, query })
     }
 }
@@ -52,30 +52,42 @@ pub enum Statement<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PredicateExpr<'a> {
+pub struct PredicateObj<'a> {
     pub name: &'a str,
     pub arguments: Vec<Expr<'a>>,
 }
 
-impl<'a> PredicateExpr<'a> {
-    pub fn new(name: &'a str, arguments: Vec<Expr<'a>>) -> Expr<'a> {
-        Expr::Predicate(PredicateExpr { name, arguments })
+impl<'a> PredicateObj<'a> {
+    pub fn new(name: &'a str, arguments: Vec<Expr<'a>>) -> Self {
+        PredicateObj { name, arguments }
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub struct VarExpr {
-    pub name: String,
+pub struct AtomExpr<'a> {
+    pub name: &'a str,
+    pub arguments: Vec<Expr<'a>>,
 }
 
-impl VarExpr {
-    pub fn new<'a>(name: String) -> Expr<'a> {
+impl<'a> AtomExpr<'a> {
+    pub fn new(name: &'a str, arguments: Vec<Expr<'a>>) -> Expr<'a> {
+        Expr::Atom(AtomExpr { name, arguments })
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct VarExpr<'a> {
+    pub name: &'a str,
+}
+
+impl<'a> VarExpr<'a> {
+    pub fn new(name: &'a str) -> Expr<'a> {
         Expr::Var(VarExpr { name })
     }
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Expr<'a> {
-    Predicate(PredicateExpr<'a>),
-    Var(VarExpr),
+    Atom(AtomExpr<'a>),
+    Var(VarExpr<'a>),
 }
