@@ -1,5 +1,7 @@
 use nom_locate::LocatedSpan;
 
+pub type VarID = u32;
+
 #[derive(Debug)]
 pub struct DefStatement<'a> {
     location: LocatedSpan<&'a str>,
@@ -78,11 +80,12 @@ impl<'a> AtomExpr<'a> {
 #[derive(Debug, PartialEq)]
 pub struct VarExpr<'a> {
     pub name: &'a str,
+    pub id: Option<VarID>,
 }
 
 impl<'a> VarExpr<'a> {
     pub fn new(name: &'a str) -> Expr<'a> {
-        Expr::Var(VarExpr { name })
+        Expr::Var(VarExpr { name, id: None })
     }
 }
 

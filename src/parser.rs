@@ -110,7 +110,7 @@ mod test {
                     vec![
                         VarExpr::new("x"),
                         AtomExpr::new("z", Vec::new()),
-                        AtomExpr::new("s", vec![Expr::Var(VarExpr { name: "y" })])
+                        AtomExpr::new("s", vec![VarExpr::new("y")])
                     ]
                 )
             )

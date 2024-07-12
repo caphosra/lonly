@@ -1,10 +1,11 @@
-use crate::parser::parse_program;
 use crate::ast::Statement;
 use crate::env::Environment;
+use crate::parser::parse_program;
 use nom_locate::LocatedSpan;
 
 mod ast;
 mod env;
+mod evaluation;
 mod parser;
 
 fn main() {
@@ -16,7 +17,7 @@ fn main() {
             Statement::Def(stmt) => {
                 env.update(stmt).unwrap();
             }
-            _ => { }
+            _ => {}
         }
     }
 }
