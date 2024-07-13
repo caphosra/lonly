@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{ast::{DefStatement, Expr, PredicateObj, VarID}, error::ErrorKind};
+use crate::{
+    ast::{DefStatement, Expr, PredicateObj, VarID},
+    error::ErrorKind,
+};
 
 #[derive(Debug)]
 struct Predicate<'a> {
@@ -70,7 +73,11 @@ impl<'a> Environment<'a> {
         match self.predicates.get_mut(pred_obj.name) {
             Some(pred) => {
                 if arg_len != pred.length {
-                    Err(ErrorKind::ArityMismatch(pred_obj.name.to_string(), arg_len, pred.length))
+                    Err(ErrorKind::ArityMismatch(
+                        pred_obj.name.to_string(),
+                        arg_len,
+                        pred.length,
+                    ))
                 } else {
                     Ok(())
                 }
@@ -100,7 +107,11 @@ impl<'a> Environment<'a> {
         match self.predicates.get_mut(stmt.conclusion.name) {
             Some(pred) => {
                 if conclusion_len != pred.length {
-                    Err(ErrorKind::ArityMismatch(stmt.conclusion.name.to_string(), pred.length, conclusion_len))
+                    Err(ErrorKind::ArityMismatch(
+                        stmt.conclusion.name.to_string(),
+                        pred.length,
+                        conclusion_len,
+                    ))
                 } else {
                     pred.rules.push((stmt.conclusion, stmt.premises));
                     Ok(())
