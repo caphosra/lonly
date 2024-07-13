@@ -65,7 +65,7 @@ impl<'a> PredicateObj<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AtomExpr<'a> {
     pub name: &'a str,
     pub arguments: Vec<Expr<'a>>,
@@ -77,7 +77,7 @@ impl<'a> AtomExpr<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct VarExpr<'a> {
     pub name: &'a str,
     pub id: Option<VarID>,
@@ -89,8 +89,51 @@ impl<'a> VarExpr<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expr<'a> {
     Atom(AtomExpr<'a>),
     Var(VarExpr<'a>),
+}
+
+impl<'a> Expr<'a> {
+    pub fn replace_var<'b>(&mut self, id: VarID, expr: &'b Expr<'a>) {
+        match self {
+            Expr::Atom(atom) => {
+                for arg in &mut atom.arguments {
+                    arg.replace_var(id, expr);
+                }
+            }
+            Expr::Var(var) => {
+                if var.id == Some(id) {
+                    *self = expr.clone();
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_replace_var() {
+        let x_var = Expr::Var(VarExpr {
+            name: "x",
+            id: Some(0),
+        });
+        let y_var = Expr::Var(VarExpr {
+            name: "y",
+            id: Some(1),
+        });
+        let mut expr = AtomExpr::new("add", vec![x_var, AtomExpr::new("s", vec![y_var])]);
+        let x_expr = AtomExpr::new("s", vec![AtomExpr::new("z", Vec::new())]);
+        let y_expr = AtomExpr::new("z", Vec::new());
+        expr.replace_var(0, &x_expr);
+        expr.replace_var(1, &y_expr);
+        assert_eq!(
+            expr,
+            AtomExpr::new("add", vec![x_expr, AtomExpr::new("s", vec![y_expr])])
+        );
+    }
 }
