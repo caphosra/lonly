@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::{Expr, VarID};
 
-pub fn occur_check<'a>(expr: &Expr<'a>, id: VarID) -> bool {
+fn occur_check<'a>(expr: &Expr<'a>, id: VarID) -> bool {
     match expr {
         Expr::Atom(atom) => atom.arguments.iter().any(|expr| occur_check(expr, id)),
         Expr::Var(v) => Some(id) == v.id,

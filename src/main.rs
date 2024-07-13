@@ -5,6 +5,7 @@ use nom_locate::LocatedSpan;
 
 mod ast;
 mod env;
+mod error;
 mod evaluation;
 mod parser;
 
@@ -16,6 +17,7 @@ fn main() {
         match stmt {
             Statement::Def(stmt) => {
                 env.update(stmt).unwrap();
+                println!("{:?}", env);
             }
             _ => {}
         }
