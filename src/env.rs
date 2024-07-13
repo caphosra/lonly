@@ -90,17 +90,10 @@ impl<'a> Environment<'a> {
         }
     }
 
-    pub fn update(&mut self, mut stmt: DefStatement<'a>) -> Result<(), ErrorKind> {
+    pub fn update(&mut self, stmt: DefStatement<'a>) -> Result<(), ErrorKind> {
         // Validate premises.
         for premise in &stmt.premises {
             self.validate(premise)?;
-        }
-
-        // Assign IDs to the variables.
-        let mut assigned = HashMap::new();
-        self.assign_new_ids(&mut stmt.conclusion.arguments, &mut assigned)?;
-        for premise in &mut stmt.premises {
-            self.assign_new_ids(&mut premise.arguments, &mut assigned)?;
         }
 
         let conclusion_len = stmt.conclusion.arguments.len();
