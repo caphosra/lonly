@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use nom_locate::LocatedSpan;
 
 pub type VarID = u32;
@@ -53,7 +55,7 @@ pub enum Statement<'a> {
     Query(QueryStatement<'a>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PredicateObj<'a> {
     pub name: &'a str,
     pub arguments: Vec<Expr<'a>>,
@@ -96,16 +98,18 @@ pub enum Expr<'a> {
 }
 
 impl<'a> Expr<'a> {
-    pub fn replace_var<'b>(&mut self, id: VarID, expr: &'b Expr<'a>) {
+    pub fn replace_vars<'b>(&mut self, replacement: &HashMap<VarID, Expr<'a>>) {
         match self {
             Expr::Atom(atom) => {
                 for arg in &mut atom.arguments {
-                    arg.replace_var(id, expr);
+                    arg.replace_vars(replacement);
                 }
             }
             Expr::Var(var) => {
-                if var.id == Some(id) {
-                    *self = expr.clone();
+                if let Some(id) = var.id {
+                    if let Some(expr) = replacement.get(&id) {
+                        *self = expr.clone();
+                    }
                 }
             }
         }
@@ -126,11 +130,16 @@ mod test {
             name: "y",
             id: Some(1),
         });
+
         let mut expr = AtomExpr::new("add", vec![x_var, AtomExpr::new("s", vec![y_var])]);
         let x_expr = AtomExpr::new("s", vec![AtomExpr::new("z", Vec::new())]);
         let y_expr = AtomExpr::new("z", Vec::new());
-        expr.replace_var(0, &x_expr);
-        expr.replace_var(1, &y_expr);
+
+        let mut replacement = HashMap::new();
+        replacement.insert(0, x_expr.clone());
+        replacement.insert(1, y_expr.clone());
+
+        expr.replace_vars(&replacement);
         assert_eq!(
             expr,
             AtomExpr::new("add", vec![x_expr, AtomExpr::new("s", vec![y_expr])])

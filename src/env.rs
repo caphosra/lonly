@@ -8,7 +8,7 @@ use crate::{
 #[derive(Debug)]
 struct Predicate<'a> {
     length: usize,
-    rules: Vec<(PredicateObj<'a>, Vec<PredicateObj<'a>>)>,
+    pub rules: Vec<(PredicateObj<'a>, Vec<PredicateObj<'a>>)>,
 }
 
 impl<'a> Predicate<'a> {
@@ -20,18 +20,13 @@ impl<'a> Predicate<'a> {
     }
 }
 
-#[derive(Debug)]
-pub struct Environment<'a> {
-    predicates: HashMap<String, Predicate<'a>>,
+pub struct VarAllocator {
     num_vars: u32,
 }
 
-impl<'a> Environment<'a> {
+impl<'a> VarAllocator {
     pub fn new() -> Self {
-        Self {
-            predicates: HashMap::new(),
-            num_vars: 0,
-        }
+        Self { num_vars: 0 }
     }
 
     fn gen_new_id(&mut self) -> VarID {
@@ -66,6 +61,23 @@ impl<'a> Environment<'a> {
             }
         }
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct Environment<'a> {
+    predicates: HashMap<String, Predicate<'a>>,
+}
+
+impl<'a> Environment<'a> {
+    pub fn new() -> Self {
+        Self {
+            predicates: HashMap::new(),
+        }
+    }
+
+    pub fn get_rules(&self, name: &str) -> Option<&Vec<(PredicateObj<'a>, Vec<PredicateObj<'a>>)>> {
+        self.predicates.get(name).map(|pred| &pred.rules)
     }
 
     pub fn validate(&mut self, pred_obj: &PredicateObj<'a>) -> Result<(), ErrorKind> {

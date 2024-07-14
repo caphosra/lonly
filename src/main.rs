@@ -1,6 +1,7 @@
 use crate::ast::Statement;
 use crate::env::Environment;
 use crate::parser::parse_program;
+use evaluation::SolutionGenerator;
 use nom_locate::LocatedSpan;
 
 mod ast;
@@ -19,7 +20,12 @@ fn main() {
                 env.update(stmt).unwrap();
                 println!("{:?}", env);
             }
-            _ => {}
+            Statement::Query(mut stmt) => {
+                let mut solution_gen = SolutionGenerator::new(&mut stmt.query, &mut env).unwrap();
+                while let Some(solution) = solution_gen.next().unwrap() {
+                    println!("{:?}", solution);
+                }
+            }
         }
     }
 }
