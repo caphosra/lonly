@@ -21,10 +21,22 @@ fn main() {
                 println!("{:?}", env);
             }
             Statement::Query(mut stmt) => {
-                let mut solution_gen = SolutionGenerator::new(&mut stmt.query, &mut env).unwrap();
+                let (mut solution_gen, name_tables) =
+                    SolutionGenerator::new(&mut stmt.query, &mut env).unwrap();
                 while let Some(solution) = solution_gen.next().unwrap() {
-                    println!("{:?}", solution);
+                    let solution = name_tables
+                        .iter()
+                        .map(|(name, id)| {
+                            if let Some(expr) = solution.get(id) {
+                                format!("{} = {:?}", name, expr)
+                            } else {
+                                format!("{} = [missing]", name)
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    println!("[{}]", solution.join(", "));
                 }
+                println!("No answer remains.");
             }
         }
     }

@@ -15,16 +15,19 @@ impl<'a> Goals<'a> {
     pub fn new(
         goal: &mut PredicateObj<'a>,
         var_alloc: &mut VarAllocator,
-    ) -> Result<Self, ErrorKind> {
+    ) -> Result<(Self, HashMap<String, u32>), ErrorKind> {
         let mut id_assignments = HashMap::new();
         var_alloc.assign_new_ids(&mut goal.arguments, &mut id_assignments)?;
 
         let mut goals = VecDeque::new();
         goals.push_back(goal.clone());
-        Ok(Self {
-            goals,
-            resolved_vars: HashMap::new(),
-        })
+        Ok((
+            Self {
+                goals,
+                resolved_vars: HashMap::new(),
+            },
+            id_assignments,
+        ))
     }
 
     pub fn apply_rule(
@@ -111,16 +114,22 @@ impl<'a, 'b> SolutionGenerator<'a, 'b> {
         }
     }
 
-    pub fn new(goal: &mut PredicateObj<'a>, env: &'b Environment<'a>) -> Result<Self, ErrorKind> {
+    pub fn new(
+        query: &mut PredicateObj<'a>,
+        env: &'b Environment<'a>,
+    ) -> Result<(Self, Vec<(String, VarID)>), ErrorKind> {
         let mut var_alloc = VarAllocator::new();
-        let goal = Goals::new(goal, &mut var_alloc)?;
+        let (goal, name_table) = Goals::new(query, &mut var_alloc)?;
         let mut queue = VecDeque::new();
         queue.push_back(goal);
-        Ok(SolutionGenerator {
-            status: queue,
-            var_alloc: var_alloc,
-            env,
-        })
+        Ok((
+            SolutionGenerator {
+                status: queue,
+                var_alloc,
+                env,
+            },
+            name_table.into_iter().collect(),
+        ))
     }
 }
 
