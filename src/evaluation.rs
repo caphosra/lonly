@@ -70,10 +70,11 @@ impl<'a> Goals<'a> {
             }
 
             // Replace the first goal with premises.
-            premises.append(&mut goals);
+            let mut new_goals = premises;
+            new_goals.append(&mut goals);
 
             Ok(Some(Goals {
-                goals,
+                goals: new_goals,
                 resolved_vars,
             }))
         } else {
