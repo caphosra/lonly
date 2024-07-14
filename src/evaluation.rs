@@ -6,14 +6,14 @@ use crate::{
     error::ErrorKind,
 };
 
-pub struct Goals<'a> {
-    goals: VecDeque<PredicateObj<'a>>,
-    resolved_vars: HashMap<VarID, Expr<'a>>,
+pub struct Goals {
+    goals: VecDeque<PredicateObj>,
+    resolved_vars: HashMap<VarID, Expr>,
 }
 
-impl<'a> Goals<'a> {
+impl Goals {
     pub fn new(
-        goal: &mut PredicateObj<'a>,
+        goal: &mut PredicateObj,
         var_alloc: &mut VarAllocator,
     ) -> Result<(Self, HashMap<String, u32>), ErrorKind> {
         let mut id_assignments = HashMap::new();
@@ -33,9 +33,9 @@ impl<'a> Goals<'a> {
     pub fn apply_rule(
         &self,
         var_alloc: &mut VarAllocator,
-        conclusion: &PredicateObj<'a>,
-        premises: &Vec<PredicateObj<'a>>,
-    ) -> Result<Option<Goals<'a>>, ErrorKind> {
+        conclusion: &PredicateObj,
+        premises: &Vec<PredicateObj>,
+    ) -> Result<Option<Goals>, ErrorKind> {
         let mut goals = self.goals.clone();
         if let Some(goal) = goals.pop_front() {
             // Copy predicate objects to assign IDs.
@@ -86,19 +86,19 @@ impl<'a> Goals<'a> {
     }
 }
 
-pub struct SolutionGenerator<'a, 'b> {
-    status: VecDeque<Goals<'a>>,
-    env: &'b Environment<'a>,
+pub struct SolutionGenerator<'a> {
+    status: VecDeque<Goals>,
+    env: &'a Environment,
     var_alloc: VarAllocator,
 }
 
-impl<'a, 'b> SolutionGenerator<'a, 'b> {
-    pub fn next(&mut self) -> Result<Option<HashMap<VarID, Expr<'a>>>, ErrorKind> {
+impl<'a> SolutionGenerator<'a> {
+    pub fn next(&mut self) -> Result<Option<HashMap<VarID, Expr>>, ErrorKind> {
         if let Some(state) = self.status.pop_front() {
             if state.goals.len() == 0 {
                 Ok(Some(state.resolved_vars))
             } else {
-                if let Some(rules) = self.env.get_rules(state.goals[0].name) {
+                if let Some(rules) = self.env.get_rules(&state.goals[0].name) {
                     for (conclusion, premises) in rules {
                         let new_goals =
                             state.apply_rule(&mut self.var_alloc, conclusion, premises)?;
@@ -115,8 +115,8 @@ impl<'a, 'b> SolutionGenerator<'a, 'b> {
     }
 
     pub fn new(
-        query: &mut PredicateObj<'a>,
-        env: &'b Environment<'a>,
+        query: &mut PredicateObj,
+        env: &'a Environment,
     ) -> Result<(Self, Vec<(String, VarID)>), ErrorKind> {
         let mut var_alloc = VarAllocator::new();
         let (goal, name_table) = Goals::new(query, &mut var_alloc)?;
@@ -133,7 +133,7 @@ impl<'a, 'b> SolutionGenerator<'a, 'b> {
     }
 }
 
-fn occur_check<'a>(expr: &Expr<'a>, id: VarID) -> bool {
+fn occur_check(expr: &Expr, id: VarID) -> bool {
     match expr {
         Expr::Atom(atom) => atom.arguments.iter().any(|expr| occur_check(expr, id)),
         Expr::Var(v) => Some(id) == v.id,
@@ -141,9 +141,9 @@ fn occur_check<'a>(expr: &Expr<'a>, id: VarID) -> bool {
 }
 
 pub fn unify_exprs<'a, 'b>(
-    expr1: &'b Expr<'a>,
-    expr2: &'b Expr<'a>,
-    constraints: &mut HashMap<VarID, Expr<'a>>,
+    expr1: &'b Expr,
+    expr2: &'b Expr,
+    constraints: &mut HashMap<VarID, Expr>,
 ) -> Result<(), ()> {
     match (expr1, expr2) {
         (Expr::Atom(atom1), Expr::Atom(atom2)) => {
@@ -197,8 +197,11 @@ mod test {
 
     #[test]
     fn test_unify1() {
-        let expr1 = AtomExpr::new("s", vec![VarExpr::new("t")]);
-        let expr2 = AtomExpr::new("s", vec![AtomExpr::new("a", Vec::new())]);
+        let expr1 = AtomExpr::new("s".to_string(), vec![VarExpr::new("t".to_string())]);
+        let expr2 = AtomExpr::new(
+            "s".to_string(),
+            vec![AtomExpr::new("a".to_string(), Vec::new())],
+        );
 
         let mut var_alloc = VarAllocator::new();
         let mut exprs = vec![expr1, expr2];
@@ -213,8 +216,14 @@ mod test {
 
     #[test]
     fn test_unify2() {
-        let expr1 = AtomExpr::new("s", vec![VarExpr::new("t")]);
-        let expr2 = AtomExpr::new("s", vec![AtomExpr::new("s", vec![VarExpr::new("t")])]);
+        let expr1 = AtomExpr::new("s".to_string(), vec![VarExpr::new("t".to_string())]);
+        let expr2 = AtomExpr::new(
+            "s".to_string(),
+            vec![AtomExpr::new(
+                "s".to_string(),
+                vec![VarExpr::new("t".to_string())],
+            )],
+        );
 
         let mut var_alloc = VarAllocator::new();
         let mut exprs = vec![expr1, expr2];

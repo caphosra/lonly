@@ -6,12 +6,12 @@ use crate::{
 };
 
 #[derive(Debug)]
-struct Predicate<'a> {
+struct Predicate {
     length: usize,
-    pub rules: Vec<(PredicateObj<'a>, Vec<PredicateObj<'a>>)>,
+    pub rules: Vec<(PredicateObj, Vec<PredicateObj>)>,
 }
 
-impl<'a> Predicate<'a> {
+impl Predicate {
     pub fn new(length: usize) -> Self {
         Self {
             length,
@@ -24,7 +24,7 @@ pub struct VarAllocator {
     num_vars: u32,
 }
 
-impl<'a> VarAllocator {
+impl VarAllocator {
     pub fn new() -> Self {
         Self { num_vars: 0 }
     }
@@ -37,14 +37,14 @@ impl<'a> VarAllocator {
 
     pub fn assign_new_ids(
         &mut self,
-        exprs: &mut Vec<Expr<'a>>,
+        exprs: &mut Vec<Expr>,
         assigned: &mut HashMap<String, u32>,
     ) -> Result<(), ErrorKind> {
         for expr in exprs {
             match expr {
                 Expr::Var(var) => {
                     if var.id == None {
-                        if let Some(id) = assigned.get(var.name) {
+                        if let Some(id) = assigned.get(&var.name) {
                             var.id = Some(*id);
                         } else {
                             let id = self.gen_new_id();
@@ -65,24 +65,24 @@ impl<'a> VarAllocator {
 }
 
 #[derive(Debug)]
-pub struct Environment<'a> {
-    predicates: HashMap<String, Predicate<'a>>,
+pub struct Environment {
+    predicates: HashMap<String, Predicate>,
 }
 
-impl<'a> Environment<'a> {
+impl Environment {
     pub fn new() -> Self {
         Self {
             predicates: HashMap::new(),
         }
     }
 
-    pub fn get_rules(&self, name: &str) -> Option<&Vec<(PredicateObj<'a>, Vec<PredicateObj<'a>>)>> {
+    pub fn get_rules(&self, name: &str) -> Option<&Vec<(PredicateObj, Vec<PredicateObj>)>> {
         self.predicates.get(name).map(|pred| &pred.rules)
     }
 
-    pub fn validate(&mut self, pred_obj: &PredicateObj<'a>) -> Result<(), ErrorKind> {
+    pub fn validate(&mut self, pred_obj: &PredicateObj) -> Result<(), ErrorKind> {
         let arg_len = pred_obj.arguments.len();
-        match self.predicates.get_mut(pred_obj.name) {
+        match self.predicates.get_mut(&pred_obj.name) {
             Some(pred) => {
                 if arg_len != pred.length {
                     Err(ErrorKind::ArityMismatch(
@@ -102,14 +102,14 @@ impl<'a> Environment<'a> {
         }
     }
 
-    pub fn update(&mut self, stmt: DefStatement<'a>) -> Result<(), ErrorKind> {
+    pub fn update(&mut self, stmt: DefStatement) -> Result<(), ErrorKind> {
         // Validate premises.
         for premise in &stmt.premises {
             self.validate(premise)?;
         }
 
         let conclusion_len = stmt.conclusion.arguments.len();
-        match self.predicates.get_mut(stmt.conclusion.name) {
+        match self.predicates.get_mut(&stmt.conclusion.name) {
             Some(pred) => {
                 if conclusion_len != pred.length {
                     Err(ErrorKind::ArityMismatch(

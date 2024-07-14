@@ -1,30 +1,22 @@
 use std::collections::HashMap;
 
-use nom_locate::LocatedSpan;
-
 pub type VarID = u32;
 
 #[derive(Debug)]
-pub struct DefStatement<'a> {
-    location: LocatedSpan<&'a str>,
-    pub conclusion: PredicateObj<'a>,
-    pub premises: Vec<PredicateObj<'a>>,
+pub struct DefStatement {
+    pub conclusion: PredicateObj,
+    pub premises: Vec<PredicateObj>,
 }
 
-impl<'a> PartialEq for DefStatement<'a> {
+impl PartialEq for DefStatement {
     fn eq(&self, other: &Self) -> bool {
         self.conclusion == other.conclusion || self.premises == other.premises
     }
 }
 
-impl<'a> DefStatement<'a> {
-    pub fn new(
-        location: LocatedSpan<&'a str>,
-        conclusion: PredicateObj<'a>,
-        premises: Vec<PredicateObj<'a>>,
-    ) -> Statement<'a> {
+impl DefStatement {
+    pub fn new(conclusion: PredicateObj, premises: Vec<PredicateObj>) -> Statement {
         Statement::Def(DefStatement {
-            location,
             conclusion,
             premises,
         })
@@ -32,73 +24,72 @@ impl<'a> DefStatement<'a> {
 }
 
 #[derive(Debug)]
-pub struct QueryStatement<'a> {
-    location: LocatedSpan<&'a str>,
-    pub query: PredicateObj<'a>,
+pub struct QueryStatement {
+    pub query: PredicateObj,
 }
 
-impl<'a> PartialEq for QueryStatement<'a> {
+impl PartialEq for QueryStatement {
     fn eq(&self, other: &Self) -> bool {
         self.query == other.query
     }
 }
 
-impl<'a> QueryStatement<'a> {
-    pub fn new(location: LocatedSpan<&'a str>, query: PredicateObj<'a>) -> Statement<'a> {
-        Statement::Query(QueryStatement { location, query })
+impl QueryStatement {
+    pub fn new(query: PredicateObj) -> Statement {
+        Statement::Query(QueryStatement { query })
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Statement<'a> {
-    Def(DefStatement<'a>),
-    Query(QueryStatement<'a>),
+pub enum Statement {
+    Def(DefStatement),
+    Query(QueryStatement),
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct PredicateObj<'a> {
-    pub name: &'a str,
-    pub arguments: Vec<Expr<'a>>,
+pub struct PredicateObj {
+    pub name: String,
+    pub arguments: Vec<Expr>,
 }
 
-impl<'a> PredicateObj<'a> {
-    pub fn new(name: &'a str, arguments: Vec<Expr<'a>>) -> Self {
+impl PredicateObj {
+    pub fn new(name: String, arguments: Vec<Expr>) -> Self {
         PredicateObj { name, arguments }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct AtomExpr<'a> {
-    pub name: &'a str,
-    pub arguments: Vec<Expr<'a>>,
+pub struct AtomExpr {
+    pub name: String,
+    pub arguments: Vec<Expr>,
 }
 
-impl<'a> AtomExpr<'a> {
-    pub fn new(name: &'a str, arguments: Vec<Expr<'a>>) -> Expr<'a> {
+impl AtomExpr {
+    pub fn new(name: String, arguments: Vec<Expr>) -> Expr {
         Expr::Atom(AtomExpr { name, arguments })
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct VarExpr<'a> {
-    pub name: &'a str,
+pub struct VarExpr {
+    pub name: String,
     pub id: Option<VarID>,
 }
 
-impl<'a> VarExpr<'a> {
-    pub fn new(name: &'a str) -> Expr<'a> {
+impl VarExpr {
+    pub fn new(name: String) -> Expr {
         Expr::Var(VarExpr { name, id: None })
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Expr<'a> {
-    Atom(AtomExpr<'a>),
-    Var(VarExpr<'a>),
+pub enum Expr {
+    Atom(AtomExpr),
+    Var(VarExpr),
 }
 
-impl<'a> Expr<'a> {
-    pub fn replace_vars<'b>(&mut self, replacement: &HashMap<VarID, Expr<'a>>) {
+impl Expr {
+    pub fn replace_vars(&mut self, replacement: &HashMap<VarID, Expr>) {
         match self {
             Expr::Atom(atom) => {
                 for arg in &mut atom.arguments {
@@ -123,17 +114,23 @@ mod test {
     #[test]
     fn test_replace_var() {
         let x_var = Expr::Var(VarExpr {
-            name: "x",
+            name: "x".to_string(),
             id: Some(0),
         });
         let y_var = Expr::Var(VarExpr {
-            name: "y",
+            name: "y".to_string(),
             id: Some(1),
         });
 
-        let mut expr = AtomExpr::new("add", vec![x_var, AtomExpr::new("s", vec![y_var])]);
-        let x_expr = AtomExpr::new("s", vec![AtomExpr::new("z", Vec::new())]);
-        let y_expr = AtomExpr::new("z", Vec::new());
+        let mut expr = AtomExpr::new(
+            "add".to_string(),
+            vec![x_var, AtomExpr::new("s".to_string(), vec![y_var])],
+        );
+        let x_expr = AtomExpr::new(
+            "s".to_string(),
+            vec![AtomExpr::new("z".to_string(), Vec::new())],
+        );
+        let y_expr = AtomExpr::new("z".to_string(), Vec::new());
 
         let mut replacement = HashMap::new();
         replacement.insert(0, x_expr.clone());
@@ -142,7 +139,10 @@ mod test {
         expr.replace_vars(&replacement);
         assert_eq!(
             expr,
-            AtomExpr::new("add", vec![x_expr, AtomExpr::new("s", vec![y_expr])])
+            AtomExpr::new(
+                "add".to_string(),
+                vec![x_expr, AtomExpr::new("s".to_string(), vec![y_expr])]
+            )
         );
     }
 }

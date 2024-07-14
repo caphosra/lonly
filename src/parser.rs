@@ -14,7 +14,7 @@ use crate::ast::{AtomExpr, DefStatement, Expr, PredicateObj, QueryStatement, Sta
 
 type ParseResult<'a, T> = IResult<LocatedSpan<&'a str>, T, VerboseError<LocatedSpan<&'a str>>>;
 
-pub fn parse_program<'a>(program: LocatedSpan<&'a str>) -> ParseResult<Vec<Statement<'a>>> {
+pub fn parse_program<'a>(program: LocatedSpan<&'a str>) -> ParseResult<Vec<Statement>> {
     delimited(
         multispace0,
         separated_list0(multispace1, parse_statement),
@@ -22,16 +22,16 @@ pub fn parse_program<'a>(program: LocatedSpan<&'a str>) -> ParseResult<Vec<State
     )(program)
 }
 
-fn parse_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement<'a>> {
+fn parse_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement> {
     alt((parse_query_statement, parse_def_statement))(text)
 }
 
-fn parse_query_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement<'a>> {
+fn parse_query_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement> {
     let (text, (_, _, query)) = tuple((tag("?"), multispace0, parse_predicate))(text)?;
-    Ok((text, QueryStatement::new(text, query)))
+    Ok((text, QueryStatement::new(query)))
 }
 
-fn parse_def_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement<'a>> {
+fn parse_def_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement> {
     let (text, (conclusion, premises)) = tuple((
         parse_predicate,
         opt(tuple((
@@ -43,7 +43,7 @@ fn parse_def_statement<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Statement<
     ))(text)?;
 
     let premises = premises.map_or(vec![], |(_, _, _, premises)| premises);
-    Ok((text, DefStatement::new(text, conclusion, premises)))
+    Ok((text, DefStatement::new(conclusion, premises)))
 }
 
 fn is_alphanumeric_or_underscore(s: char) -> bool {
@@ -54,7 +54,7 @@ fn parse_ident<'a>(text: LocatedSpan<&'a str>) -> ParseResult<LocatedSpan<&'a st
     take_while1(is_alphanumeric_or_underscore)(text)
 }
 
-fn parse_n_ary<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Vec<Expr<'a>>> {
+fn parse_n_ary<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Vec<Expr>> {
     delimited(
         tuple((tag("("), multispace0)),
         separated_list1(tuple((multispace0, tag(","), multispace0)), parse_expr),
@@ -62,31 +62,31 @@ fn parse_n_ary<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Vec<Expr<'a>>> {
     )(text)
 }
 
-fn parse_predicate<'a>(text: LocatedSpan<&'a str>) -> ParseResult<PredicateObj<'a>> {
+fn parse_predicate<'a>(text: LocatedSpan<&'a str>) -> ParseResult<PredicateObj> {
     let (text, ident) = parse_ident(text)?;
     let (text, l) = parse_n_ary(text)?;
-    Ok((text, PredicateObj::new(&ident, l)))
+    Ok((text, PredicateObj::new(ident.to_string(), l)))
 }
 
-fn parse_expr<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
+fn parse_expr<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr> {
     alt((parse_var, parse_n_ary_atom, parse_nullary_atom))(text)
 }
 
-fn parse_var<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
+fn parse_var<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr> {
     let (text, _) = tag("$")(text)?;
     let (text, ident) = parse_ident(text)?;
-    Ok((text, VarExpr::new(&ident)))
+    Ok((text, VarExpr::new(ident.to_string())))
 }
 
-fn parse_n_ary_atom<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
+fn parse_n_ary_atom<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr> {
     let (text, ident) = parse_ident(text)?;
     let (text, l) = parse_n_ary(text)?;
-    Ok((text, AtomExpr::new(&ident, l)))
+    Ok((text, AtomExpr::new(ident.to_string(), l)))
 }
 
-fn parse_nullary_atom<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr<'a>> {
+fn parse_nullary_atom<'a>(text: LocatedSpan<&'a str>) -> ParseResult<Expr> {
     let (text, ident) = parse_ident(text)?;
-    Ok((text, AtomExpr::new(&ident, vec![])))
+    Ok((text, AtomExpr::new(ident.to_string(), vec![])))
 }
 
 #[cfg(test)]
@@ -103,17 +103,14 @@ mod test {
         assert_eq!(text.to_string(), "");
         assert_eq!(
             item,
-            QueryStatement::new(
-                LocatedSpan::new(""),
-                PredicateObj::new(
-                    "test_1dent",
-                    vec![
-                        VarExpr::new("x"),
-                        AtomExpr::new("z", Vec::new()),
-                        AtomExpr::new("s", vec![VarExpr::new("y")])
-                    ]
-                )
-            )
+            QueryStatement::new(PredicateObj::new(
+                "test_1dent".to_string(),
+                vec![
+                    VarExpr::new("x".to_string()),
+                    AtomExpr::new("z".to_string(), Vec::new()),
+                    AtomExpr::new("s".to_string(), vec![VarExpr::new("y".to_string())])
+                ]
+            ))
         );
     }
 
@@ -126,10 +123,10 @@ mod test {
         assert_eq!(
             item,
             AtomExpr::new(
-                "test_1dent",
+                "test_1dent".to_string(),
                 vec![
-                    AtomExpr::new("s", vec![VarExpr::new("x")]),
-                    VarExpr::new("x")
+                    AtomExpr::new("s".to_string(), vec![VarExpr::new("x".to_string())]),
+                    VarExpr::new("x".to_string())
                 ]
             )
         );
