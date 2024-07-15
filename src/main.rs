@@ -27,14 +27,22 @@ fn exec_program(env: &mut Environment, program: &str) -> Result<(), ErrorKind> {
                     let solution = name_tables
                         .iter()
                         .map(|(name, id)| {
-                            if let Some(expr) = solution.get(*id) {
-                                format!("{} = {}", name, expr.to_string())
-                            } else {
-                                format!("{} = [missing]", name)
-                            }
+                            let expr = solution.get(*id).unwrap();
+                            format!("{} = {}", name, expr.to_string())
                         })
                         .collect::<Vec<_>>();
-                    println!("[{}]", solution.join(", "));
+
+                    print!("[{}]", solution.join(", "));
+                    io::stdout().flush().unwrap();
+
+                    let mut buf = String::new();
+                    let stdin = io::stdin();
+                    stdin.lock().read_line(&mut buf).unwrap();
+                    match buf.as_str() {
+                        "\n" => {}
+                        ".\n" => break,
+                        _ => Err(ErrorKind::UnknownInstruction)?,
+                    }
                 }
                 println!("No answer remains.");
             }
@@ -67,6 +75,9 @@ fn main() {
                         "ERR: An error detected while parsing program. Detail: {}",
                         text
                     );
+                }
+                ErrorKind::UnknownInstruction => {
+                    println!("ERR: This option is not supported.")
                 }
             }
         }

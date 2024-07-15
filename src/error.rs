@@ -6,6 +6,7 @@ pub enum ErrorKind {
     Parser(String),
     ArityMismatch(String, usize, usize),
     VariableIDAlreadyAssigned(String),
+    UnknownInstruction,
 }
 
 type NomErr<'a> = nom::Err<VerboseError<LocatedSpan<&'a str>>>;
