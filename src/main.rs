@@ -11,6 +11,7 @@ mod env;
 mod error;
 mod evaluation;
 mod parser;
+mod unifier;
 
 fn exec_program(env: &mut Environment, program: &str) -> Result<(), ErrorKind> {
     let program = LocatedSpan::new(program);
