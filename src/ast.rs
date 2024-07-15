@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 pub type VarID = u32;
 
 #[derive(Debug)]
@@ -86,63 +84,4 @@ impl VarExpr {
 pub enum Expr {
     Atom(AtomExpr),
     Var(VarExpr),
-}
-
-impl Expr {
-    pub fn replace_vars(&mut self, replacement: &HashMap<VarID, Expr>) {
-        match self {
-            Expr::Atom(atom) => {
-                for arg in &mut atom.arguments {
-                    arg.replace_vars(replacement);
-                }
-            }
-            Expr::Var(var) => {
-                if let Some(id) = var.id {
-                    if let Some(expr) = replacement.get(&id) {
-                        *self = expr.clone();
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_replace_var() {
-        let x_var = Expr::Var(VarExpr {
-            name: "x".to_string(),
-            id: Some(0),
-        });
-        let y_var = Expr::Var(VarExpr {
-            name: "y".to_string(),
-            id: Some(1),
-        });
-
-        let mut expr = AtomExpr::new(
-            "add".to_string(),
-            vec![x_var, AtomExpr::new("s".to_string(), vec![y_var])],
-        );
-        let x_expr = AtomExpr::new(
-            "s".to_string(),
-            vec![AtomExpr::new("z".to_string(), Vec::new())],
-        );
-        let y_expr = AtomExpr::new("z".to_string(), Vec::new());
-
-        let mut replacement = HashMap::new();
-        replacement.insert(0, x_expr.clone());
-        replacement.insert(1, y_expr.clone());
-
-        expr.replace_vars(&replacement);
-        assert_eq!(
-            expr,
-            AtomExpr::new(
-                "add".to_string(),
-                vec![x_expr, AtomExpr::new("s".to_string(), vec![y_expr])]
-            )
-        );
-    }
 }

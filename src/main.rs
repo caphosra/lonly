@@ -28,7 +28,7 @@ fn exec_program(env: &mut Environment, program: &str) -> Result<(), ErrorKind> {
                     let solution = name_tables
                         .iter()
                         .map(|(name, id)| {
-                            if let Some(expr) = solution.get(id) {
+                            if let Some(expr) = solution.get(*id) {
                                 format!("{} = {:?}", name, expr)
                             } else {
                                 format!("{} = [missing]", name)

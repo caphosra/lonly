@@ -67,7 +67,8 @@ impl VarAllocator {
 ///
 /// Represents the substitution of variables.
 ///
-struct VarSubstitution {
+#[derive(Clone)]
+pub struct VarSubstitution {
     subst: HashMap<VarID, Expr>,
 }
 
@@ -103,11 +104,11 @@ impl VarSubstitution {
         }
     }
 
-    pub fn merge(&mut self, other: &mut Self) {
+    pub fn merge(&mut self, other: &Self) {
         let ids = self.subst.keys().cloned().collect::<Vec<_>>();
         for id in ids {
             let to_be_replaced = self.subst.get_mut(&id).unwrap();
-            to_be_replaced.replace_vars(&other.subst);
+            other.substitute(to_be_replaced);
         }
 
         for (id, expr) in &other.subst {

@@ -1,15 +1,15 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-    ast::{Expr, PredicateObj, VarID},
-    env::{Environment, VarAllocator},
+    ast::{PredicateObj, VarID},
+    env::{Environment, VarAllocator, VarSubstitution},
     error::ErrorKind,
     unifier::unify_exprs,
 };
 
 pub struct Goals {
     goals: VecDeque<PredicateObj>,
-    resolved_vars: HashMap<VarID, Expr>,
+    resolved_vars: VarSubstitution,
 }
 
 impl Goals {
@@ -25,7 +25,7 @@ impl Goals {
         Ok((
             Self {
                 goals,
-                resolved_vars: HashMap::new(),
+                resolved_vars: VarSubstitution::new(),
             },
             id_assignments,
         ))
@@ -42,7 +42,7 @@ impl Goals {
             // Copy predicate objects to assign IDs.
             let mut conclusion = conclusion.clone();
             let mut premises: VecDeque<_> = premises.clone().into();
-            let mut resolved_vars = self.resolved_vars.clone();
+            let mut subst = self.resolved_vars.clone();
 
             // Assignment new variable IDs.
             let mut id_assignments = HashMap::new();
@@ -56,31 +56,35 @@ impl Goals {
             }
 
             // Applying the rule by unifying variables.
+            let mut exprs = VecDeque::new();
             for idx in 0..goal.arguments.len() {
-                if let Err(_) = unify_exprs(
-                    &goal.arguments[idx],
-                    &conclusion.arguments[idx],
-                    &mut resolved_vars,
-                ) {
-                    return Ok(None);
-                }
+                exprs.push_back((
+                    goal.arguments[idx].clone(),
+                    conclusion.arguments[idx].clone(),
+                ));
             }
+            match unify_exprs(&mut exprs) {
+                Ok(new_subst) => {
+                    subst.merge(&new_subst);
 
-            // Replace variables with the solutions.
-            for premise in &mut premises {
-                for arg in &mut premise.arguments {
-                    arg.replace_vars(&resolved_vars);
+                    // Replace variables with the solutions.
+                    for premise in &mut premises {
+                        for arg in &mut premise.arguments {
+                            subst.substitute(arg);
+                        }
+                    }
+
+                    // Replace the first goal with premises.
+                    let mut new_goals = premises;
+                    new_goals.append(&mut goals);
+
+                    Ok(Some(Goals {
+                        goals: new_goals,
+                        resolved_vars: subst,
+                    }))
                 }
+                Err(_) => Ok(None),
             }
-
-            // Replace the first goal with premises.
-            let mut new_goals = premises;
-            new_goals.append(&mut goals);
-
-            Ok(Some(Goals {
-                goals: new_goals,
-                resolved_vars,
-            }))
         } else {
             Ok(None)
         }
@@ -94,7 +98,7 @@ pub struct SolutionGenerator<'a> {
 }
 
 impl<'a> SolutionGenerator<'a> {
-    pub fn next(&mut self) -> Result<Option<HashMap<VarID, Expr>>, ErrorKind> {
+    pub fn next(&mut self) -> Result<Option<VarSubstitution>, ErrorKind> {
         if let Some(state) = self.status.pop_front() {
             if state.goals.len() == 0 {
                 Ok(Some(state.resolved_vars))
