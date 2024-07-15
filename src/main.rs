@@ -12,14 +12,8 @@ mod error;
 mod evaluation;
 mod parser;
 
-fn exec_program(env: &mut Environment) -> Result<(), ErrorKind> {
-    print!("> ");
-    io::stdout().flush().unwrap();
-    let mut line = String::new();
-    let stdin = io::stdin();
-    stdin.lock().read_line(&mut line).unwrap();
-
-    let program = LocatedSpan::new(line.as_str());
+fn exec_program(env: &mut Environment, program: &str) -> Result<(), ErrorKind> {
+    let program = LocatedSpan::new(program);
     let (_, statements) = parse_program(program)?;
     for stmt in statements {
         match stmt {
@@ -52,7 +46,12 @@ fn exec_program(env: &mut Environment) -> Result<(), ErrorKind> {
 fn main() {
     let mut env = Environment::new();
     loop {
-        if let Err(err) = exec_program(&mut env) {
+        print!("> ");
+        io::stdout().flush().unwrap();
+        let mut line = String::new();
+        let stdin = io::stdin();
+        stdin.lock().read_line(&mut line).unwrap();
+        if let Err(err) = exec_program(&mut env, &line) {
             match err {
                 ErrorKind::ArityMismatch(name, size1, size2) => {
                     println!(
