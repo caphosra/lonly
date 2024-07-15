@@ -92,9 +92,12 @@ impl ToString for Expr {
             Expr::Atom(atom) => {
                 if atom.arguments.len() == 0 {
                     atom.name.clone()
-                }
-                else {
-                    let args = atom.arguments.iter().map(|e| e.to_string()).collect::<Vec<_>>();
+                } else {
+                    let args = atom
+                        .arguments
+                        .iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>();
                     format!("{}({})", atom.name, args.join(", "))
                 }
             }

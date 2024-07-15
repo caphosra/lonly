@@ -82,6 +82,6 @@ pub fn unify_exprs(exprs: &mut VecDeque<(Expr, Expr)>) -> Result<VarSubstitution
             }
         }
     } else {
-       Ok(VarSubstitution::new())
+        Ok(VarSubstitution::new())
     }
 }
