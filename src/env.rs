@@ -64,6 +64,60 @@ impl VarAllocator {
     }
 }
 
+///
+/// Represents the substitution of variables.
+///
+struct VarSubstitution {
+    subst: HashMap<VarID, Expr>,
+}
+
+impl VarSubstitution {
+    pub fn new() -> Self {
+        VarSubstitution {
+            subst: HashMap::new(),
+        }
+    }
+
+    pub fn insert(&mut self, id: VarID, expr: Expr) {
+        self.subst.insert(id, expr);
+    }
+
+    pub fn get(&self, id: VarID) -> Option<&Expr> {
+        self.subst.get(&id)
+    }
+
+    pub fn substitute(&self, expr: &mut Expr) {
+        match expr {
+            Expr::Atom(atom) => {
+                for arg in &mut atom.arguments {
+                    self.substitute(arg);
+                }
+            }
+            Expr::Var(var) => {
+                if let Some(id) = var.id {
+                    if let Some(repl) = self.get(id) {
+                        *expr = repl.clone();
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn merge(&mut self, other: &mut Self) {
+        let ids = self.subst.keys().cloned().collect::<Vec<_>>();
+        for id in ids {
+            let to_be_replaced = self.subst.get_mut(&id).unwrap();
+            to_be_replaced.replace_vars(&other.subst);
+        }
+
+        for (id, expr) in &other.subst {
+            if !self.subst.contains_key(id) {
+                self.subst.insert(*id, expr.clone());
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Environment {
     predicates: HashMap<String, Predicate>,
