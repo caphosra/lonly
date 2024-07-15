@@ -85,3 +85,22 @@ pub enum Expr {
     Atom(AtomExpr),
     Var(VarExpr),
 }
+
+impl ToString for Expr {
+    fn to_string(&self) -> String {
+        match self {
+            Expr::Atom(atom) => {
+                if atom.arguments.len() == 0 {
+                    atom.name.clone()
+                }
+                else {
+                    let args = atom.arguments.iter().map(|e| e.to_string()).collect::<Vec<_>>();
+                    format!("{}({})", atom.name, args.join(", "))
+                }
+            }
+            Expr::Var(var) => {
+                format!("${}", var.name)
+            }
+        }
+    }
+}

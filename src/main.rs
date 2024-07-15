@@ -20,7 +20,6 @@ fn exec_program(env: &mut Environment, program: &str) -> Result<(), ErrorKind> {
         match stmt {
             Statement::Def(stmt) => {
                 env.update(stmt)?;
-                println!("{:?}", env);
             }
             Statement::Query(mut stmt) => {
                 let (mut solution_gen, name_tables) = SolutionGenerator::new(&mut stmt.query, env)?;
@@ -29,7 +28,7 @@ fn exec_program(env: &mut Environment, program: &str) -> Result<(), ErrorKind> {
                         .iter()
                         .map(|(name, id)| {
                             if let Some(expr) = solution.get(*id) {
-                                format!("{} = {:?}", name, expr)
+                                format!("{} = {}", name, expr.to_string())
                             } else {
                                 format!("{} = [missing]", name)
                             }
