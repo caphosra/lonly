@@ -23,6 +23,7 @@ fn exec_program(env: &mut Environment, program: &str) -> Result<(), ErrorKind> {
             }
             Statement::Query(mut stmt) => {
                 let (mut solution_gen, name_tables) = SolutionGenerator::new(&mut stmt.query, env)?;
+                let mut is_interrupted = false;
                 while let Some(solution) = solution_gen.next()? {
                     let solution = name_tables
                         .iter()
@@ -40,11 +41,19 @@ fn exec_program(env: &mut Environment, program: &str) -> Result<(), ErrorKind> {
                     stdin.lock().read_line(&mut buf).unwrap();
                     match buf.as_str() {
                         "\n" => {}
-                        ".\n" => break,
+                        ".\n" => {
+                            is_interrupted = true;
+                            break
+                        },
                         _ => Err(ErrorKind::UnknownInstruction)?,
                     }
                 }
-                println!("No answer remains.");
+                if is_interrupted {
+                    println!("Interrupted.");
+                }
+                else {
+                    println!("No answer remains.");
+                }
             }
         }
     }
